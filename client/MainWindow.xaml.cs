@@ -1,8 +1,12 @@
 ﻿using SuperSimpleTcp;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +15,7 @@ using System.Windows.Documents;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
+
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -23,9 +28,13 @@ namespace TCPClient2
     /// <summary>
     /// Interaction logic for Client.xaml
     /// </summary>
+    /// 
+
     public partial class Client : Window
     {
-        //SimpleTcpClient client = new SimpleTcpClient("127.0.0.1", 9000);
+        //SimpleTcpClient client = new SimpleTcpClient("127.0.0.1", 9000
+        //
+        Bitmap Capture; //картинка для передачи 
         public Client()
         {
             InitializeComponent();
@@ -60,7 +69,7 @@ namespace TCPClient2
             client.Events.DataReceived += Events_DataReceived;
             client.Events.Disconnected += Events_Disconnected;
             btnSend.IsEnabled = false;
-         
+
         }
         //this.Invoke -- это означает: "При каждом подключении к серверу,
         //пожалуйста, добавь строку "Server connected."
@@ -86,10 +95,10 @@ namespace TCPClient2
                 txtInfo.Text += "Send Photo";
 
                 // Вывод полученных данных от сервера
-//                Capture = (Bitmap)ByteArrayToImage(e.Data.ToArray());
-//                txtInfo.Text += Capture.Height.ToString() + " px";
-//                txtInfo.Text += Capture.Width.ToString() + " px";
-//                pictureBox2.Image = Capture;
+                //                Capture = (Bitmap)ByteArrayToImage(e.Data.ToArray());
+                //                txtInfo.Text += Capture.Height.ToString() + " px";
+                //                txtInfo.Text += Capture.Width.ToString() + " px";
+                //                pictureBox2.Image = Capture;
                 //удаление изображения для освобождения памяти ------> ошибка 
                 //Capture.Dispose();
 
@@ -105,6 +114,8 @@ namespace TCPClient2
 
         private void Events_Connected(object sender, ConnectionEventArgs e)
         {
+            string clientName = textBoxClientName.Text; // Получение имени клиента из TextBox
+            client.Send(clientName);
             this.Dispatcher.Invoke(() =>
             {
                 txtInfo.Text += $"Server connected.{Environment.NewLine}";
@@ -122,15 +133,63 @@ namespace TCPClient2
                 {  // Отправка сообщения серверу
                     client.Send(txtMessage.Text);
                     // Отображение отправленного сообщения
-                    txtInfo.Text += $"ogurchik:{txtMessage.Text}{Environment.NewLine}";
+                    txtInfo.Text += $"Me:{txtMessage.Text}{Environment.NewLine}";
                     txtMessage.Text = string.Empty;
                 }
             }
         }
 
-        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+
+        public static byte[] ResizeAndConvertImageToByte(System.Drawing.Image img)
         {
-            // Ваш обработчик изменения текста в текстовом поле
+            System.Drawing.Image resizedImg = new System.Drawing.Bitmap(img, new System.Drawing.Size(img.Width / 2, img.Height / 2));
+            return ImageToByte2(resizedImg); // Преобразуем уменьшенное изображение в массив байтов
         }
+
+        //преобразование в массив байт
+        public static byte[] ImageToByte2(System.Drawing.Image img)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                img.Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg);
+                return stream.ToArray();
+            }
+        }
+        private void Capture2(Bitmap bm)
+        {
+            while (true)
+            {
+                bm = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
+                Graphics g = Graphics.FromImage(bm);
+                g.CopyFromScreen(0, 0, 0, 0, bm.Size);
+
+                byte[] captureBytes2 = ResizeAndConvertImageToByte(bm);
+                client.Send(captureBytes2);
+
+
+                Thread.Sleep(1000);
+            }
+        }
+
+        private void send_video_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        //private void send_video_Click(object sender, RoutedEventArgs e)
+        //{
+
+        //    Bitmap capture = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
+        //    Capture2(capture);
+        //    byte[] captureBytes = ResizeAndConvertImageToByte(capture);
+        //    client.Send(captureBytes);
+
+
+        //}
+
     }
+
+
 }
+
+
